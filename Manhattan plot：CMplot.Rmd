@@ -1,0 +1,172 @@
+---
+title: "Manhattan plot：CMplot"
+date: "`r Sys.Date()`"
+author: "ylchen"
+output:
+  rmdformats::downcute:
+    self_contained: true
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,warning = F,message = F,collapse=TRUE)
+```
+
+# 一、介绍
+* CMplot：绘制SNP密度、曼哈顿图、QQ图
+* https://github.com/YinLiLin/CMplot
+
+```{r}
+#install.packages("CMplot")
+library("CMplot")
+data(pig60K)   #calculated p-values by MLM
+data(cattle50K) #calculated SNP effects by rrblup
+head(pig60K)
+# 数据简单点，只用一个trait
+pig60K <- pig60K[,-c(5,6)]
+head(pig60K)
+
+```
+
+# 二、曼哈顿图
+
+* 曼哈顿图，是全基因组关联分析（Genome-Wide Association Study, GWAS）的标配，可以展示所有染色体上的不同位置的 SNP 的显著水平
+* pig60K 
+  * 横坐标：单核苷酸多态性（SNP）位点
+  * 纵坐标为染色体编号，标记的基因组坐标，不同特征值
+* 也可应用与甲基化数据，甲基化探针名，染色体编号，p值
+
+## Single_track Rectangular-Manhattan plot
+
+```{r}
+
+# plot.type 设置不同的绘图类型，可以设定为 "d", "c", "m", "q" or "b"
+# threshold   设置阈值并添加阈值线
+# LOG10   设置是否对p-value取log10对数
+# chr.den.col SNP密度的颜色，可以为字符，向量或空
+# dpi 设置输出图片的分辨度
+# memo    设置输出图片文件的名字
+# file.output 设置是否输出图片
+CMplot(pig60K,plot.type="m",LOG10=TRUE,threshold=NULL,
+       chr.den.col=NULL,dpi=300,file.output=FALSE,verbose=TRUE)
+
+```
+
+* 添加阈值线
+
+```{r}
+# col 设置颜色，可以是vector or matrix
+# ylim    设置y轴的范围同plot中的"ylim"
+# threshold.lwd   设置阈值线的宽度
+# threshold.lty   设置阈值线的类型
+# signal.cex  设置显著点的大小
+# signal.pch  设置显著点的形状
+# signal.col  设置显著点的颜色
+# threshold 阈值线两条 所以signal显著点颜色有两种
+CMplot(pig60K, plot.type="m", col=c("grey30","grey60"), 
+       LOG10=TRUE,ylim=c(2,12), threshold=c(1e-6,1e-4),
+       threshold.lty=c(1,2), threshold.lwd=c(1,1),
+       threshold.col=c("black","grey"), amplify=TRUE,
+       chr.den.col=NULL, signal.col=c("red","green"),
+       signal.cex=c(1.5,1.5),signal.pch=c(19,19),
+       dpi=300,file.output=FALSE,width=14,height=6)
+# 若想格外标志出基因，用highlight.text=genes
+# 导出三张图trait1，2，3，若想合并起来用multracks=TRUE
+```
+
+## Circular-Manhattan plot
+
+* plot.type 设置不同的绘图类型，可以设定为 "d", "c", "m", "q" or "b"
+  * "d" 表示 SNP density plot "c" 表示 circle-Manhattan plot
+  * "m" 表示 Manhattan plot "q" 表示 Q-Q plot
+  * "b" 表示 circle-Manhattan, Manhattan and Q-Q plots一起绘制
+
+```{r}
+# r   设置圈的半径大小
+# chr.labels  设置染色体的标签
+# outward 设置点的朝向是否向外
+CMplot(pig60K,type="p",plot.type="c",
+       chr.labels=paste("Chr",c(1:18,"X","Y"),sep=""),r=0.4,
+       cir.legend=TRUE,outward=FALSE,cir.legend.col="black",
+       cir.chr.h=1.3,chr.den.col="black",file.output=FALSE,
+       verbose=TRUE,width=10,height=10)
+```
+
+# 三、SNP密度图
+
+```{r}
+# bin.size    设置SNP密度图中的窗口大小
+CMplot(pig60K,type="p",plot.type="d",bin.size=1e6,
+       chr.den.col=c("darkgreen", "yellow", "red"),
+       file="jpg",memo="",dpi=300,
+       main="illumilla_60K",file.output=FALSE,
+       verbose=TRUE,width=9,height=6)
+```
+
+# 四、Q-Q图
+* 原理：https://www.jianshu.com/p/c46bd6d8b86d
+* 在统计学中，Q-Q（分位数-分位数）图是概率图，其是通过将绘制两个概率分布的分位数来比较两者分布关系的图形方法。
+* 理论值和实际值的关系图，x=理论值，y=实际值
+（实际值通过公式求出理论值）
+```{r}
+CMplot(pig60K,plot.type="q",box=FALSE,
+       dpi=300,conf.int=TRUE,conf.int.col=NULL,
+       threshold.col="red",threshold.lty=2,
+       file.output=FALSE,verbose=TRUE,width=5,height=5)
+```
+
+
+# 五、具体参数
+```{r}
+# Pmap    输入数据文件
+# col 设置颜色，可以是vector or matrix
+# 当vector数量少于染色体数目时，循环利用；也可以对每一个性状的每一条染色体进行设置
+# bin.size    设置SNP密度图中的窗口大小
+# bin.max  bin中SNP数量的阈值，当大于阈值时染色体bin颜色为同一颜色
+# cex 设置绘制点的大小
+# pch 设置绘制点的形状，同plot中的"pch"
+# band    设置染色体之间的间隔,当为0时染色体间无空隙，默认为1
+# cir.band  设置不同circle的空隙，默认为1
+# H   性状circle的高度设置，默认1
+# ylim    设置y轴的范围同plot中的"ylim"
+# cex.axis    设置坐标轴字体和标签字体的大小
+# bin.size    设置SNP密度图中的窗口大小
+# cex.axis    设置坐标轴字体和标签字体的大小
+# plot.type   设置不同的绘图类型，可以设定为 "d", "c", "m", "q" or "b"
+#  "d" 表示 SNP density plot "c" 表示 circle-Manhattan plot
+#  "m" 表示 Manhattan plot "q" 表示 Q-Q plot
+#  "b" 表示 circle-Manhattan, Manhattan and Q-Q plots一起绘制
+#   plot.type=c("m","q") 表示Manhattan plot和Q-Q plot一起绘制
+# multracks   设置是否需要绘制多个track
+# cex 绘制点的大小，可是为单个数值或向量（对应同一绘图中不同的plot）
+# r   设置圈的半径大小
+# xlab    设置x轴标签
+# ylab    设置y轴标签
+# outward 设置点的朝向是否向外
+# threshold   设置阈值并添加阈值线
+# threshold.col   设置阈值线的颜色
+# threshold.lwd   设置阈值线的宽度
+# threshold.lty   设置阈值线的类型
+# amplify 设置是否放大显著的点
+# chr.labels  设置染色体的标签
+# signal.cex  设置显著点的大小
+# signal.pch  设置显著点的形状
+# signal.col  设置显著点的颜色
+# singal.line 设置显著线的宽度
+# chr.den.col 设置SNP密度图的颜色
+# cir.band    设置环状曼哈顿图中不同染色体之间的间隔
+# cir.chr 设置是否显示染色体的边界
+# cir.chr.h   设置染色体边界的高度
+# chr.den.col SNP密度的颜色，可以为字符，向量或空
+# cir.legend  设置是否显示图例
+# cir.legend.cex  设置图例字体的大小
+# cir.legend.col  设置图例的颜色
+# LOG10   设置是否对p-value取log10对数
+# box 曼哈顿是否绘制方框
+# conf.int.col    设置QQ图中置信区间的颜色
+# file.output 设置是否输出图片
+# file    设置输出图片的格式，可以设定为"jpg", "pdf", "tiff"
+# dpi 设置输出图片的分辨度
+# memo    设置输出图片文件的名字
+```
+
